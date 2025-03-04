@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Go Board</title>
+<style>
+body { margin: 0; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="goBoard" width="450" height="450"></canvas>
+<script>
+const canvas = document.getElementById('goBoard');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 9;
+const stoneRadius = 18;
+const lineWidth = 2;
+const boardPadding = stoneRadius * 1.5;
+
+let board = [];
+for (let i = 0; i < gridSize; i++) {
+  board[i] = new Array(gridSize).fill(null);
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = lineWidth;
+
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  for (let i = 0; i < gridSize; i++) {
+    const x = boardPadding + i * gridSpacing;
+    const y = boardPadding + i * gridSpacing;
+
+    ctx.beginPath();
+    ctx.moveTo(x, boardPadding);
+    ctx.lineTo(x, boardPadding + boardSize);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(boardPadding, y);
+    ctx.lineTo(boardPadding + boardSize, y);
+    ctx.stroke();
+  }
+}
+
+function drawStone(row, col, color) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, stoneRadius, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function clearBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  board = []; // Reset the board
+  for (let i = 0; i < gridSize; i++) {
+    board[i] = new Array(gridSize).fill(null);
+  }
+}
+
+const initialStones = [
+  { row: 1, col: 0, color: 'white' },
+  { row: 1, col: 1, color: 'white' },
+  { row: 1, col: 2, color: 'white' },
+  { row: 1, col: 3, color: 'white' },
+  { row: 0, col: 3, color: 'white' },
+  { row: 2, col: 0, color: 'black' },
+  { row: 2, col: 1, color: 'black' },
+  { row: 2, col: 2, color: 'black' },
+  { row: 2, col: 3, color: 'black' },
+  { row: 2, col: 4, color: 'black' },
+  { row: 1, col: 4, color: 'black' },
+  { row: 0, col: 4, color: 'black' },
+];
+
+function drawInitialStones() {
+  initialStones.forEach(stone => {
+    board[stone.row][stone.col] = stone.color;
+    drawStone(stone.row, stone.col, stone.color);
+  });
+}
+
+drawGrid();
+drawInitialStones();
+
+let currentColor = 'black';
+
+canvas.addEventListener('click', (event) => {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = event.offsetX - boardPadding;
+  const y = event.offsetY - boardPadding;
+
+  const col = Math.round(x / gridSpacing);
+  const row = Math.round(y / gridSpacing);
+
+  if (col >= 0 && col < gridSize && row >= 0 && row < gridSize && board[row][col] === null) {
+    drawStone(row, col, currentColor);
+    board[row][col] = currentColor;
+    currentColor = currentColor === 'black' ? 'white' : 'black';
+  }
+});
+</script>
+
+</body>
+</html>

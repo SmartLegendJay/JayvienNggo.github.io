@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Go Board</title>
+<style>
+body { margin: 0; background-color: orange;}
+canvas { display: block; }
+h2 {padding-left: 50px; padding-top: 20px;}
+h3 {padding-left: 50px;}
+</style>
+</head>
+<body>
+    <div class="info">Objective of the game is to have the most territory. Liberties are the points directly beside a stone, diagonal points do not count, X represents liberties for black, Y represents liberties for white. Stones are captured when surrounded on all sides.</div>
+
+<canvas id="goBoard" width="450" height="450"></canvas>
+<script>
+const canvas = document.getElementById('goBoard');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 5;
+const stoneRadius = 30;
+const lineWidth = 2;
+const boardPadding = stoneRadius * 1.5;
+
+let board = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+
+function drawGrid() {
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = lineWidth;
+
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  for (let i = 0; i < gridSize; i++) {
+    const x = boardPadding + i * gridSpacing;
+    const y = boardPadding + i * gridSpacing;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, boardPadding);
+    ctx.lineTo(x, boardPadding + boardSize);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(boardPadding, y);
+    ctx.lineTo(boardPadding + boardSize, y);
+    ctx.stroke();
+  }
+}
+
+function drawStone(row, col, color) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, stoneRadius, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function drawMarker(row, col, text, color) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+  
+  ctx.fillStyle = color;
+  ctx.font = '40px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+function getLiberties(row, col, color) {
+  const directions = [ [-1, 0], [1, 0], [0, -1], [0, 1] ];
+  let liberties = [];
+
+  directions.forEach(([dr, dc]) => {
+    const newRow = row + dr, newCol = col + dc;
+    if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+      if (board[newRow][newCol] === null) {
+        liberties.push({ row: newRow, col: newCol });
+      }
+    }
+  });
+
+  return liberties;
+}
+
+function checkCapture(row, col, color) {
+  const oppositeColor = color === 'black' ? 'white' : 'black';
+  const directions = [ [-1, 0], [1, 0], [0, -1], [0, 1] ];
+  let capturedStones = [];
+  
+  directions.forEach(([dr, dc]) => {
+    const newRow = row + dr, newCol = col + dc;
+    if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+      if (board[newRow][newCol] === oppositeColor) {
+        let group = [{ row: newRow, col: newCol }];
+        let visited = new Set([`${newRow},${newCol}`]);
+        let queue = [{ row: newRow, col: newCol }];
+        let hasLiberty = false;
+
+        while (queue.length > 0) {
+          let { row: r, col: c } = queue.pop();
+          getLiberties(r, c, oppositeColor).forEach(lib => {
+            hasLiberty = true;
+          });
+          
+          directions.forEach(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && !visited.has(`${nr},${nc}`)) {
+              if (board[nr][nc] === oppositeColor) {
+                group.push({ row: nr, col: nc });
+                queue.push({ row: nr, col: nc });
+                visited.add(`${nr},${nc}`);
+              }
+            }
+          });
+        }
+        
+        if (!hasLiberty) {
+          capturedStones.push(...group);
+        }
+      }
+    }
+  });
+  
+  return capturedStones;
+}
+
+function redrawBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  
+  board.forEach((rowArr, row) => {
+    rowArr.forEach((cell, col) => {
+      if (cell) drawStone(row, col, cell);
+    });
+  });
+  
+  board.forEach((rowArr, row) => {
+    rowArr.forEach((cell, col) => {
+      if (!cell) return;
+      let liberties = getLiberties(row, col, cell);
+      liberties.forEach(({ row: lr, col: lc }) => {
+        drawMarker(lr, lc, cell === 'black' ? 'X' : 'Y', 'black');
+      });
+    });
+  });
+}
+
+board[1][1] = 'black';
+board[2][4] = 'white';
+redrawBoard();
+
+let currentColor = 'black';
+canvas.addEventListener('click', (event) => {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = event.offsetX - boardPadding;
+  const y = event.offsetY - boardPadding;
+
+  const col = Math.round(x / gridSpacing);
+  const row = Math.round(y / gridSpacing);
+  
+  if (board[row][col] === null) {
+    board[row][col] = currentColor;
+    
+    let capturedStones = checkCapture(row, col, currentColor);
+    capturedStones.forEach(({ row, col }) => {
+      board[row][col] = null;
+    });
+    
+    currentColor = currentColor === 'black' ? 'white' : 'black';
+    redrawBoard();
+  }
+});
+</script>
+</body>
+</html>
+

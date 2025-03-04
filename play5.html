@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Go Board</title>
+<style>
+body { margin: 0; background-color: orange;}
+canvas { display: block; }
+h2 {padding-left: 50px; padding-top: 20px;}
+h3 {padding-left: 50px;}
+</style>
+</head>
+<body>
+<h2>Capturing yourself!</h2>
+<h3>Click on the grid position where you will get captured</h3>
+<canvas id="goBoard" width="500" height="500"></canvas>
+<script>
+const canvas = document.getElementById('goBoard');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 5;
+const stoneRadius = 36;
+const lineWidth = 4;
+const boardPadding = stoneRadius * 1.5;
+let clicked = false;
+let board = [];
+for (let i = 0; i < gridSize; i++) {
+  board[i] = new Array(gridSize).fill(null);
+}
+
+let gameOver = false; // Flag to track game over state
+
+function drawGrid() {
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = lineWidth;
+
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  for (let i = 0; i < gridSize; i++) {
+    const x = boardPadding + i * gridSpacing;
+    const y = boardPadding + i * gridSpacing;
+
+    ctx.beginPath();
+    ctx.moveTo(x, boardPadding);
+    ctx.lineTo(x, boardPadding + boardSize);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(boardPadding, y);
+    ctx.lineTo(boardPadding + boardSize, y);
+    ctx.stroke();
+  }
+}
+
+function drawStone(row, col, color) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, stoneRadius, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function clearBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  board = [];
+  for (let i = 0; i < gridSize; i++) {
+    board[i] = new Array(gridSize).fill(null);
+  }
+  gameOver = false; // Reset game over state
+}
+
+const initialStones = [
+    { row: 0, col: 2, color: 'black' }, 
+    { row: 0, col: 3, color: 'black' },
+    { row: 1, col: 1, color: 'black' },
+    { row: 1, col: 2, color: 'white' },
+    { row: 1, col: 3, color: 'white' },
+    { row: 1, col: 4, color: 'black' },
+    { row: 2, col: 1, color: 'black' },
+    { row: 2, col: 3, color: 'black' },
+    { row: 3, col: 2, color: 'black' },
+];
+
+function drawInitialStones() {
+  initialStones.forEach(stone => {
+    board[stone.row][stone.col] = stone.color;
+    drawStone(stone.row, stone.col, stone.color);
+  });
+}
+
+function drawCircle(row, col) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.strokeStyle = 'red'; // Circle color
+  ctx.lineWidth = 4;       // Circle thickness
+  ctx.beginPath();
+  ctx.arc(x, y, stoneRadius + 5, 0, 2 * Math.PI); // Slightly larger circle
+  ctx.stroke();
+}
+
+
+drawGrid();
+drawInitialStones();
+
+let currentColor = 'black';
+
+canvas.addEventListener('click', (event) => {
+  if (clicked) return; // If game is over, don't handle clicks
+
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = event.offsetX - boardPadding;
+  const y = event.offsetY - boardPadding;
+
+  const col = Math.round(x / gridSpacing);
+  const row = Math.round(y / gridSpacing);
+
+  clicked = true;
+
+  // Draw the circle *after* the click, regardless of validity:
+  drawCircle(2, 2); // Draw circle at (0, 1)
+
+});
+
+</script>
+
+</body>
+</html>

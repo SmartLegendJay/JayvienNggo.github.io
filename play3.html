@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Go Board: Chains</title>
+    <style>
+        body {margin: 0;}
+        canvas {display: block;}
+        #message {
+            position: relative;
+            left: 20px;
+            top: 20px;
+            background-color: yellow;
+            padding: 16px;
+            max-width: 440px;
+            overflow-y: auto;
+            border: 1px solid black;
+            display: none;
+        }
+    </style>
+    <h1 style="margin-left: 24px">Go Board: Capturing</h1>
+    <h2 style="margin-left: 24px">Try to make chain from black!</h2>
+</head>
+
+<body bgcolor="orange">
+    <canvas id="goBoard" width="500" height="500"></canvas>
+    <div id="message"></div>
+    <script>
+        const canvas = document.getElementById("goBoard");
+        const ctx = canvas.getContext("2d");
+        const gridSize = 5;
+        const stoneRadius = 36;
+        const lineWidth = 4;
+        const boardPadding = stoneRadius * 1.5;
+
+        let board = [];
+        let gameOver = false; // Flag to prevent additional moves
+
+        for (let i = 0; i < gridSize; i++) {
+            board[i] = new Array(gridSize).fill(null);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = lineWidth;
+
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+
+            for (let i = 0; i < gridSize; i++) {
+                const x = boardPadding + i * gridSpacing;
+                const y = boardPadding + i * gridSpacing;
+
+                ctx.beginPath();
+                ctx.moveTo(x, boardPadding);
+                ctx.lineTo(x, boardPadding + boardSize);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(boardPadding, y);
+                ctx.lineTo(boardPadding + boardSize, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawStone(row, col, color) {
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+            const x = boardPadding + col * gridSpacing;
+            const y = boardPadding + row * gridSpacing;
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, stoneRadius, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function clearStone(row, col) {
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+            const x = boardPadding + col * gridSpacing;
+            const y = boardPadding + row * gridSpacing;
+
+            ctx.clearRect(x - stoneRadius, y - stoneRadius, stoneRadius * 2, stoneRadius * 2);
+            board[row][col] = null; // Update the board state
+
+            // Redraw the grid in the cleared area without exceeding the outer border
+            if (row > 0) {
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, y - stoneRadius);
+                ctx.lineTo(x, y + stoneRadius);
+                ctx.stroke();
+            }
+
+            if (col > 0) {
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(x - stoneRadius, y);
+                ctx.lineTo(x + stoneRadius, y);
+                ctx.stroke();
+            }
+
+            // For corners, make sure not to draw beyond the canvas borders
+            if (row == 0) {
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, boardPadding);
+                ctx.lineTo(x, y + stoneRadius);
+                ctx.stroke();
+            }
+
+            if (col == 0) {
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(boardPadding, y);
+                ctx.lineTo(x + stoneRadius, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawInitialStones() {
+            initialStones.forEach(stone => {
+                board[stone.row][stone.col] = stone.color;
+                drawStone(stone.row, stone.col, stone.color);
+            });
+        }
+
+        function drawCircle(row, col) {
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+            const x = boardPadding + col * gridSpacing;
+            const y = boardPadding + row * gridSpacing;
+
+            console.log(`Drawing circle at row ${row}, col ${col}, x ${x}, y ${y}`); // Debugging
+
+            ctx.strokeStyle = "red"; // Circle color
+            ctx.lineWidth = 3;       // Circle thickness
+            ctx.beginPath();
+            ctx.arc(x, y, stoneRadius + 5, 0, 2 * Math.PI); // Slightly larger circle
+            ctx.stroke();
+        }
+
+        const initialStones = [
+            { row: 0, col: 4, color: "white" },
+            { row: 1, col: 4, color: "white" },
+            { row: 2, col: 4, color: "white" },
+            { row: 3, col: 2, color: "white" },
+            { row: 3, col: 3, color: "white" },
+            { row: 4, col: 3, color: "white" },
+            { row: 1, col: 1, color: "black" },
+            { row: 2, col: 1, color: "black" },
+        ];
+
+        function drawInitialStones() {
+            initialStones.forEach(stone => {
+                board[stone.row][stone.col] = stone.color;
+                drawStone(stone.row, stone.col, stone.color);
+            });
+        }
+
+        function drawCircle(row, col) {
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+
+            const x = boardPadding + col * gridSpacing;
+            const y = boardPadding + row * gridSpacing;
+
+            ctx.strokeStyle = "red"; // Circle color
+            ctx.lineWidth = 3;       // Circle thickness
+            ctx.beginPath();
+            ctx.arc(x, y, stoneRadius + 5, 0, 2 * Math.PI); // Slightly larger circle
+            ctx.stroke();
+        }
+
+        drawGrid();
+        drawInitialStones();
+
+        let currentColor = "black";
+
+        canvas.addEventListener("click", (event) => {
+            if (gameOver) return; // If game is over, don't handle clicks
+
+            const boardSize = canvas.width - 2 * boardPadding;
+            const gridSpacing = boardSize / (gridSize - 1);
+            const x = event.offsetX - boardPadding;
+            const y = event.offsetY - boardPadding;
+            const col = Math.round(x / gridSpacing);
+            const row = Math.round(y / gridSpacing);
+
+            if (col >= 0 && col < gridSize && row >= 0 && row < gridSize && board[row][col] === null) {
+                drawStone(row, col, currentColor);
+                board[row][col] = currentColor;
+
+                if (col == 1 && row == 0 && currentColor == "black") { // When stone is placed at (0, 1) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else if (col == 0 && row == 1 && currentColor == "black") { // When stone is placed at (1, 0) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else if (col == 2 && row == 1 && currentColor == "black") { // When stone is placed at (1, 2) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else if (col == 0 && row == 2 && currentColor == "black") { // When stone is placed at (2, 0) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else if (col == 2 && row == 2 && currentColor == "black") { // When stone is placed at (2, 2) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else if (col == 1 && row == 3 && currentColor == "black") { // When stone is placed at (3, 1) with black color
+                    document.getElementById("message").innerText = "You have created a chain!";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                else {
+                    document.getElementById("message").innerText = "No chain created. Please refresh the page to try again.";
+                    document.getElementById("message").style.display = "block";
+                }
+
+                currentColor = currentColor === "black" ? "white" : "black";
+                gameOver = true; // Set the gameOver flag after the first move
+            }
+            
+            // Draw the circle *after* the click, regardless of validity:
+            drawCircle(0, 1); // Draw circle at (0, 1)
+            drawCircle(1, 0); // Draw circle at (1, 0)
+            drawCircle(1, 2); // Draw circle at (1, 2)
+            drawCircle(2, 0); // Draw circle at (2, 0)
+            drawCircle(2, 2); // Draw circle at (2, 2)
+            drawCircle(3, 1); // Draw circle at (3, 1)
+
+            });
+        </script>
+    </body>
+</html>

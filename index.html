@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Kata Model JS</title>
+  <title>GO Game</title>
 </head>
 <body>
   <style>
@@ -48,6 +48,24 @@
       element.click();
       document.body.removeChild(element);
     }
+    function eval() {
+    const boardState = goban.getBoardState();
+    fetch('/evaluate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ board_state: boardState })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('AI evaluation:', data);
+        // Handle the AI response (e.g., display it on the page)
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
   </script>
 </body>
 </html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Game</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+    <button class="pass-button" onclick="passTurn()">Pass</button>
+    <div class="menu">
+        <button class="dropdown-button">Change Board Size</button>
+        <div class="dropdown-content">
+            <button class="size-button" data-size="9">9x9</button>
+            <button class="size-button" data-size="13">13x13</button>
+            <!-- <button class="size-button" data-size="17">17x17</button>
+            <button class="size-button" data-size="19">19x19</button> -->
+        </div>
+    </div>
+    <button class="mainmenu" onclick="toggleMenu()">Menu</button>
+    <div class="mainmenu-content" id="mainmenu-content">
+        <a href="#" onclick="newGame()">New Game</a>
+        <a href="#" onclick="saveGame()">Save Game</a>
+        <a href="#" onclick="saveGame()">Feedback (Coming soon)</a>
+    </div>
+    <button class="tutorial" onclick="toggleTutorial()">Half-Done-Board</button>
+    <div class="tutorial-content" id="tutorial-content">
+        <button onclick="kyueasy()" id ="tutbtns">30kyu</button>
+        <button onclick="kyumiddle()" id="tutbtns">21 kyu</button>
+        <button onclick="kyuhard()" id="tutbtns">15 kyu</button>
+        <button onclick="daneasy()" id="tutbtns">Halfdoneboard 4</button>
+        <button onclick="danmiddle()" id="tutbtns">Halfdoneboard 5</button>
+        <button onclick="danhard()" id="tutbtns">3 dan</button>
+        <h3>Weiqi/Go Rank</h3>
+        <ul>
+            <li>30kyu - 9 dan</li>
+            <li>Easiest - Hardest</li>
+        </ul>    
+    </div>
+    <button class="how-to-play" onclick="toggleHow()">how-to-play</button>
+    <div class="how-to-play-content" id="how-to-play-content">
+        <button onclick="play1()" id="tutbtns">Play 1</button>
+        <button onclick="play2()" id="tutbtns">Play 2</button>
+        <button onclick="play3()" id="tutbtns">Play 3</button>
+        <button onclick="play4()" id="tutbtns">Play 4</button>
+    </div>    
+    <div class="info" id="info">Player 1 (Black) Turn</div>
+    <div class="board" id="board"></div>
+    <div class="winning-scale">
+        <div class="hourglass-container">
+            <div class="hourglass">
+                <div class="black-sand" id="black-sand">
+                    <span id="black-percentage"></span>
+                </div>
+                <div class="white-sand" id="white-sand">
+                    <span id="white-percentage"></span>
+                </div>
+            </div>
+            <span id="winning-message"></span>
+            <div id="black-winrate"></div>
+            <div id="white-winrate"></div>
+        </div>
+    </div>
+    <!-- <button id="reset-button">Reset Game</button>
+    <button class="rules-button" onclick="toggleRules()">Rules</button>
+    <div class="rules-popup" id="rules-popup"> -->
+    <button onclick="loadGame()">Load Game</button>
+    <input type="file" id="fileInput" accept=".json" style="display: none" />
+    <button class="rules-button" onclick="toggleRules()">Rules</button>
+    <div class="rules-popup" id="rules-popup">    
+        <h3>Weiqi (Go) Rules</h3>
+        <ul>
+            <li>Black moves first.</li>
+            <li>Stones cannot be moved once placed.</li>
+            <li>Captured stones are removed.</li>
+            <li>Cannot Repeat same move set, KO</li>
+            <li>Suicide stones are not allowed</li>
+            <li>The game ends when both players pass.</li>
+        </ul>
+    </div>
+    <script>
+        let blackStones = 0;
+        let whiteStones = 0;
+        let boardSize = 9;
+        let cellSize = 40;
+        let isBlackTurn = true; // Black starts
+        let boardState = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
+        const boardHistory = []; // For Ko rule
+        const capturedStones = { white: 0, black: 0 };
+        let passCount = 0;
+        const komi = 7.5; // Komi for white
+
+        const boardElement = document.getElementById('board');
+        const info = document.getElementById('info');
+
+function toggleRules() {
+            const rulesPopup = document.getElementById('rules-popup');
+            rulesPopup.style.display = rulesPopup.style.display === 'block' ? 'none' : 'block';
+        }
+        window.onload = () => {
+            loadGame(); // Call loadGame if needed
+            initializeGame(); // Call this new function
+        };
+
+function initializeGame() {  // New function to make the initial AI move
+            fetch('/play_move', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({}) // Empty body for the initial AI move
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.ai_move) { // Check if AI move exists
+                    console.log("AI's first move:", data.ai_move);
+                    const [aiColor, aiPos] = data.ai_move.split(" ");
+                    const aiRow = aiPos.charCodeAt(0) - 'A'.charCodeAt(0);
+                    const aiCol = parseInt(aiPos.slice(1)) - 1;
+                    placeStone(aiCol, aiRow, aiColor.toLowerCase());
+                    boardHistory.push(getBoardState());
+                    isBlackTurn = !isBlackTurn; // Toggle turn after AI move
+                    info.textContent = `Player ${isBlackTurn ? 1 : 2} (${isBlackTurn ? 'Black' : 'White'}) Turn`;
+                    const blackWinrate = calculateWinrate();
+                    updateWinningScale(blackWinrate);
+
+                } else {
+                    console.error("Failed to get initial AI move:", data ? data.error : "No data");
+                    // Handle the error, maybe display a message to the user
+                    alert("Error initializing the game. Please try again.");
+                }
+            })
+            .catch(error => {
+                console.error("Error initializing the game:", error);
+                alert("Error initializing the game. Please try again.");
+            });
+        }        
+        
+// Draw grid lines
+for (let i = 0; i < boardSize; i++) {
+            const horizontalLine = document.createElement('div');
+            horizontalLine.classList.add('grid-line', 'horizontal');
+            horizontalLine.style.top = `${i * cellSize + cellSize / 2}px`;
+            boardElement.appendChild(horizontalLine);
+
+            const verticalLine = document.createElement('div');
+            verticalLine.classList.add('grid-line', 'vertical');
+            verticalLine.style.left = `${i * cellSize + cellSize / 2}px`;
+            boardElement.appendChild(verticalLine);
+        }
+const sizeButtons = document.querySelectorAll('.size-button');
+
+sizeButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+        const newSize = parseInt(button.dataset.size);
+        boardElement.innerHTML = '';
+        boardSize = newSize;
+        cellSize = 360 / boardSize; // Update cellSize calculation
+        document.documentElement.style.setProperty('--board-size', `${360}px`); // Update --board-size variable
+        document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+        resetGame();
+    });
+});
+function drawGrid() {
+            boardElement.innerHTML = ''; // Clear existing grid lines
+            for (let i = 0; i < boardSize; i++) {
+                const horizontalLine = document.createElement('div');
+                horizontalLine.classList.add('grid-line', 'horizontal');
+                horizontalLine.style.top = `${i * cellSize + cellSize / 2}px`;
+                boardElement.appendChild(horizontalLine);
+
+                const verticalLine = document.createElement('div');
+                verticalLine.classList.add('grid-line', 'vertical');
+                verticalLine.style.left = `${i * cellSize + cellSize / 2}px`;
+                boardElement.appendChild(verticalLine);
+            }
+            boardElement.addEventListener('click', handleBoardClick);
+        }
+        drawGrid();
+
+    sizeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const newSize = parseInt(button.dataset.size);
+            boardSize = newSize;
+            cellSize = 360 / boardSize; // Update cellSize calculation
+
+            // Reset the game *and* redraw the grid:
+            resetGame();
+    });
+});
+
+function loadGame() {
+            const fileInput = document.getElementById("fileInput");
+            fileInput.click(); // Open file selector
+
+            fileInput.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const gameState = JSON.parse(e.target.result);
+                    document.getElementById('info').innerText = gameState.info;
+                    document.getElementById('board').innerHTML = gameState.board;
+                    alert("Game loaded successfully!");
+                };
+                reader.readAsText(file);
+            };
+        }
+
+function toggleMenu() {
+            const menuContent = document.getElementById('mainmenu-content');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+function toggleTutorial() {
+            const menuContent = document.getElementById('tutorial-content');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }        
+
+function toggleHow() {
+            const menuContent = document.getElementById('how-to-play-content');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }  
+
+function kyueasy(){
+    window.location.href= '/kyueasy';
+}
+function kyumiddle(){
+    window.location.href = '/kyumiddle';
+}
+function kyuhard(){
+    window.location.href = '/kyuhard';
+}
+function daneasy(){
+    window.location.href = '/daneasy';
+}
+function danmiddle(){
+    window.location.href = '/danmiddle';
+}
+function danhard(){
+    window.location.href = '/danhard';
+}
+function play1(){
+    window.location.href = '/play1';
+}
+function play2(){
+    window.location.href = '/play2';
+}
+function play3(){
+    window.location.href = '/play3';
+}
+function play4(){
+    window.location.href = '/play4';
+}
+function newGame() {
+            localStorage.removeItem('savedGame');
+            fetch('/reset_game');
+            location.reload();
+        }
+
+function saveGame() {
+            const gameState = {
+                info: document.getElementById('info').innerText,
+                board: document.getElementById('board').innerHTML
+            };
+
+            const blob = new Blob([JSON.stringify(gameState, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "game_save.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            alert("Game saved to your laptop!");
+        }
+
+async function handleBoardClick(e) {
+            const rect = boardElement.getBoundingClientRect();
+            const col = Math.floor((e.clientX - rect.left) / cellSize);
+            const row = Math.floor((e.clientY - rect.top) / cellSize);
+
+            if (row < 0 || row >= boardSize || col < 0 || col >= boardSize || boardState[row][col]) return;
+
+            const color = isBlackTurn ? 'black' : 'white';
+
+            if (isSuicideMove(row, col, color)) {
+                alert("Illegal move! This is a suicide move.");
+                return;
+            }
+
+            placeStone(row, col, color); // Place the stone *first*
+
+            if (isKoViolation()) {
+                removeStone(row, col); // Undo move
+                alert("Illegal move! This violates the Ko rule.");
+                return;
+            }
+
+            boardHistory.push(getBoardState()); // Store board state for Ko
+
+            isBlackTurn = !isBlackTurn;
+            info.textContent = `Player ${isBlackTurn ? 1 : 2} (${isBlackTurn ? 'Black' : 'White'}) Turn`;
+
+
+            const moveColor = isBlackTurn ? 'W' : 'B';
+            const pos = `${String.fromCharCode(65 + col)}${row + 1}`; // Convert to algebraic notation (e.g., "D4")
+            const move = `${moveColor} ${pos}`;
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/play_move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ move })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Error sending move:', response.status, errorData.error);
+                    alert("An error occurred: " + errorData.error);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Response received:', data);
+
+                if (data.success) {
+                    // ... (your existing logic to update the board after the player's move)
+
+                    const aiMove = data.ai_move;
+                    if (aiMove) {
+                        if (aiMove === "PASS") {
+                            console.log("AI passed.");
+                            isBlackTurn = !isBlackTurn;
+                            info.textContent = `Player ${isBlackTurn ? 1 : 2} (${isBlackTurn ? 'Black' : 'White'}) Turn`;
+                        } else if (aiMove === "RESIGN") {
+                            console.log("AI resigned.");
+                            alert("AI resigned. Game Over!");
+                            // End the game on the frontend (e.g., disable further moves)
+                            boardElement.removeEventListener('click', handleBoardClick); // Example: disable clicks
+                        } else {
+                            const [aiColor, aiPos] = aiMove.split(" ");
+                            const aiRow = aiPos.charCodeAt(0) - 'A'.charCodeAt(0);
+                            const aiCol = parseInt(aiPos.slice(1)) - 1;
+                            placeStone(aiCol, aiRow, aiColor.toLowerCase());
+                            boardHistory.push(getBoardState());
+                            checkCaptures(aiCol, aiRow, aiColor.toLowerCase());
+                            isBlackTurn = !isBlackTurn;
+                            info.textContent = `Player ${isBlackTurn ? 1 : 2} (${isBlackTurn ? 'Black' : 'White'}) Turn`;
+                            const blackWinrate = calculateWinrate();
+                            updateWinningScale(blackWinrate);
+                        }
+                    } else {
+                        console.error("No aiMove received from server.");
+                        alert("An error occurred: No AI move received.");
+                    }
+                } else {
+                    console.error("Server returned an error:", data.error);
+                    alert("An error occurred: " + data.error);
+                }
+
+            } catch (error) {
+                console.error('Error sending move:', error);
+                alert("An error occurred. Please try again later.");
+            }
+
+            checkCaptures(row, col, color);
+            const blackWinrate = calculateWinrate();
+            updateWinningScale(blackWinrate);
+
+            passCount = 0;
+        }
+function getBoardState() {
+    return boardState.map(row => row.slice()); // Deep copy
+    }
+
+    function passTurn() {
+            passCount++;
+            isBlackTurn = !isBlackTurn;
+            info.textContent = `Player ${isBlackTurn ? 1 : 2} (${isBlackTurn ? 'Black' : 'White'}) Turn`;
+            
+            if (passCount >= 2) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            alert("Both players passed. Game Over!");
+            calculatePoints();
+            //location.reload();
+        }
+
+        boardElement.addEventListener('click', () => {
+            passCount = 0; // Reset pass count if a stone is placed
+        });
+
+function removeStone(row, col) {
+    boardState[row][col] = null;
+    const stone = document.querySelector(`.stone[style*="top: ${row * cellSize + cellSize / 2 - 15}px"][style*="left: ${col * cellSize + cellSize / 2 - 15}px"]`);
+    if (stone) stone.remove();
+    }
+
+// Place a stone and update the board
+function placeStone(row, col, color) {
+    const stone = document.createElement('div');
+    stone.classList.add('stone', color);
+    stone.style.top = `${row * cellSize + cellSize / 2 - 15}px`;
+    stone.style.left = `${col * cellSize + cellSize / 2 - 15}px`;
+    boardElement.appendChild(stone);
+    boardState[row][col] = color;
+    checkCaptures(row, col, color);
+}
+function isKoViolation() {
+            const currentState = getBoardState();
+            return boardHistory.some(prevState =>
+                prevState.every((row, rIdx) => row.every((cell, cIdx) => cell === currentState[rIdx][cIdx]))
+            );
+        }
+// Check for captures around the placed stone
+// Check for captures around the placed stone
+function checkCaptures(row, col, color) {
+    const opponentColor = color === 'black' ? 'white' : 'black';
+    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+    directions.forEach(([dr, dc]) => {
+        const r = row + dr;
+        const c = col + dc;
+        if (isInBounds(r, c) && boardState[r][c] === opponentColor) {
+            const group = getGroup(r, c);
+            if (!hasLiberties(group)) {
+                removeGroup(group);
+            }
+        }
+    });
+
+    if (color === 'black') {
+        blackStones++;
+    } else {
+        whiteStones++;
+    }
+
+    const blackWinrate = calculateWinrate();
+    updateWinningScale(blackWinrate);
+}
+function isSuicideMove(row, col, color) {
+            const opponentColor = color === 'black' ? 'white' : 'black';
+            boardState[row][col] = color; // Temporarily place stone
+
+            const capturedGroups = [];
+
+            // adjacent opponent groups for captures
+            [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
+                const r = row + dr;
+                const c = col + dc;
+                if (isInBounds(r, c) && boardState[r][c] === opponentColor) {
+                    const group = getGroup(r, c);
+                    if (!hasLiberties(group)) {
+                        capturedGroups.push(group);
+                    }
+                }
+            });
+
+            boardState[row][col] = null; // Undo the temporary placement
+
+            if (capturedGroups.length > 0) return false; // Not a suicide if capture occurs
+
+            // If no opponent captures, check for own liberties
+            boardState[row][col] = color; // Place stone again
+            const ownGroup = getGroup(row, col);
+            const isTrulySuicidal = !hasLiberties(ownGroup);
+            boardState[row][col] = null; // Undo again
+
+            return isTrulySuicidal;
+        }
+        function checkCaptures(row, col, color) {
+            // ... (your existing checkCaptures logic) ...
+            const opponentColor = color === 'black' ? 'white' : 'black';
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            const capturedGroups = [];
+
+            directions.forEach(([dr, dc]) => {
+                const r = row + dr;
+                const c = col + dc;
+                if (isInBounds(r, c) && boardState[r][c] === opponentColor) {
+                    const group = getGroup(r, c);
+                    if (!hasLiberties(group)) {
+                        capturedGroups.push(group);
+                    }
+                }
+            });
+
+            capturedGroups.forEach(group => {
+                capturedStones[color] += group.length;
+                removeGroup(group);
+            });
+        }
+// Get a group of stones connected to the given position
+function getGroup(row, col) {
+    const color = boardState[row][col];
+    const group = [];
+    const visited = Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
+
+    function dfs(r, c) {
+        if (!isInBounds(r, c) || visited[r][c] || boardState[r][c] !== color) return;
+        visited[r][c] = true;
+        group.push([r, c]);
+        [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => dfs(r + dr, c + dc));
+    }
+
+    dfs(row, col);
+    return group;
+}
+
+// Check if a group has any liberties
+function hasLiberties(group) {
+    return group.some(([r, c]) =>
+        [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            return isInBounds(nr, nc) && !boardState[nr][nc];
+        })
+    );
+}
+
+// Remove a group of stones from the board
+function removeGroup(group) {
+    group.forEach(([r, c]) => {
+        boardState[r][c] = null;
+        const stone = document.querySelector(`.stone[style*="top: ${r * cellSize + cellSize / 2 - 15}px"][style*="left: ${c * cellSize + cellSize / 2 - 15}px"]`);
+        if (stone) stone.remove();
+        if (boardState[r][c] === 'black') {
+            blackStones--;
+        } else {
+            whiteStones--;
+        }
+    });
+
+    const blackWinrate = calculateWinrate();
+    updateWinningScale(blackWinrate);
+}
+
+function calculateWinrate() {
+    const totalStones = blackStones + whiteStones;
+    if (totalStones === 0) {
+        return 0.5; // Default value when there are no stones
+    }
+    return blackStones / totalStones;
+}
+
+// Check if a position is within the board bounds
+function isInBounds(row, col) {
+    return row >= 0 && row < boardSize && col >= 0 && col < boardSize;
+}
+
+function updateWinningScale(blackWinrate) {
+    console.log('Updated winrate:', blackWinrate);
+    // Ensure blackWinrate is a valid number
+    if (typeof blackWinrate !== 'number' || isNaN(blackWinrate)) {
+        console.error('Invalid winrate:', blackWinrate);
+        return;
+    }
+
+    const blackPercentage = Math.round(blackWinrate * 100);
+    const whitePercentage = 100 - blackPercentage;
+
+    // Corrected string interpolation with backticks
+    document.getElementById('black-sand').style.height = `${blackPercentage}%`;
+    document.getElementById('white-sand').style.height = `${whitePercentage}%`;
+    document.getElementById('black-percentage').textContent = `${blackPercentage}%`;
+    document.getElementById('white-percentage').textContent = `${whitePercentage}%`;
+
+    const blackWinrateElement = document.getElementById('black-winrate');
+    const whiteWinrateElement = document.getElementById('white-winrate');
+
+    blackWinrateElement.textContent = `Black Winrate: ${blackWinrate.toFixed(2)}`;
+    whiteWinrateElement.textContent = `White Winrate: ${(1 - blackWinrate).toFixed(2)}`;
+
+    // Send the winrate data to the Flask server
+    fetch('/update_winrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ black_winrate: blackWinrate, white_winrate: 1 - blackWinrate })
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))  // data contains the updated winrate
+    .catch(error => console.error(error));
+}
+    </script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: orange;
+}
+
+.info {
+  margin: 10px;
+  font-size: 18px;
+}
+.size-button{
+    margin:0 auto;
+    border: 0;
+    display: block;
+    background: transparent;
+    margin-top:10px;
+}
+.size-button:hover{
+    color:red;
+    font-size: 15px;
+    border-radius: 20px;
+    background: black;
+}
+.dropdown-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropdown-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px -8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  display: none;
+  text-align: center;
+}
+
+.dropdown-content button {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+}
+
+.dropdown-content button:hover {
+  background-color: #f1f1f1;
+}
+.menu {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  border-radius: 20px;
+  background-color: #3e8e41;
+}
+
+.menu:hover .dropdown-content {
+  display: block;
+}
+
+.menu:hover .dropdown-button {
+  background-color: black;
+  color:red;
+  border-radius: 10px;
+}
+
+
+.mainmenu {
+  position: absolute;
+  top: 80px;
+  left: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.mainmenu-content {
+  display: none;
+  position: absolute;
+  top: 120px;
+  left: 10px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  border-radius: 5px;
+}
+.mainmenu-content a {
+  display: block;
+  padding: 5px;
+  text-decoration: none;
+  color: black;
+  cursor: pointer;
+}
+.mainmenu-content a:hover {
+  background-color: #ddd;
+}
+
+.board {
+  position: relative;
+  width: var(--board-size);
+  height: var(--board-size);
+  transform: scale(calc(1 * (min(100vw, 100vh) / 720))); /* adjust scale to fit resolution */
+  transform-origin: center; /* maintain center position */
+  background-color: #d8a15f;
+  border: 2px solid #654321;
+}
+:root {
+  --board-size: 360px; /* default board size */
+  --cell-size: 40px; /* default cell size */
+}
+.grid-line {
+  position: absolute;
+  background-color: black;
+}
+.grid-line.horizontal {
+  height: 2px;
+  width: 100%;
+}
+.grid-line.vertical {
+  width: 2px;
+  height: 100%;
+}
+
+.stone {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.stone.black {
+  background-color: black;
+}
+
+.stone.white {
+  background-color: white;
+}
+
+.winning-scale {
+  position: absolute;
+  top: 30%;
+  right: 30%;
+  bottom: 0;
+  transform: translateY(-50%);
+}
+
+.hourglass-container {
+  position: absolute;
+  top: 150px;
+}
+
+.hourglass {
+  position: relative;
+  width: 50px;
+  height: 200px;
+  border: 2px solid #000;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.black-sand {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  transition: height 0.5s ease-in-out;
+}
+
+.white-sand {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  transition: height 0.5s ease-in-out;
+}
+.rules-button {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.rules-button:hover {
+  background-color: #0056b3;
+}
+
+.rules-popup {
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  left: 10px;
+  width: 250px;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
+.rules-popup h3 {
+  margin-top: 0; /* Adjust as needed */
+}
+
+.pass-button {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 10px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.pass-button:hover {
+  background-color: #a71d2a;
+}
+
+.tutorial {
+  position: absolute;
+  top: 80px;
+  right: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.tutorial-content {
+  display: none;
+  position: absolute;
+  top: 120px;
+  right: 10px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  border-radius: 5px;
+}
+.tutorial-content a {
+  display: block;
+  padding: 5px;
+  text-decoration: none;
+  color: black;
+  cursor: pointer;
+}
+.tutorial-content a:hover {
+  background-color: #ddd;
+}
+
+.how-to-play {
+  position: absolute;
+  left: 80px;
+  bottom: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.how-to-play-content {
+  display: none;
+  position: absolute;
+  left: 80px;
+  bottom: 50px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  border-radius: 5px;
+}
+.how-to-play-content a {
+  display: block;
+  padding: 5px;
+  text-decoration: none;
+  color: black;
+  cursor: pointer;
+}
+.how-to-play-content a:hover {
+  background-color: #ddd;
+}
+/* .board.white-turn {
+  pointer-events: none; /* Disable clicks for white's turn 
+} */
+
+#tutbtns{
+  background: none;
+  border: 1px solid black;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px;
+  margin: 10px;
+  margin-left: 0;
+  font-size: 15px;
+  cursor: pointer;
+  display: block;
+}
+.container {
+  margin-top: 3%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}

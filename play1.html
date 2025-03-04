@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Go Board</title>
+<style>
+body { margin: 0; background-color: orange;}
+canvas { display: block; }
+h2 {padding-left: 50px; padding-top: 20px;}
+h3 {padding-left: 50px;}
+</style>
+</head>
+<body>
+    <div class="info">Objective of the game is to have the most territory. In the board below, you can see that white has occupied territory based on the W sign. Place the correct move as black to gain more territory</div>
+
+<canvas id="goBoard" width="450" height="450"></canvas>
+<script>
+const canvas = document.getElementById('goBoard');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 5;
+const stoneRadius = 30;
+const lineWidth = 2;
+const boardPadding = stoneRadius * 1.5;
+
+let board = [];
+for (let i = 0; i < gridSize; i++) {
+  board[i] = new Array(gridSize).fill(null);
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = lineWidth;
+
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  for (let i = 0; i < gridSize; i++) {
+    const x = boardPadding + i * gridSpacing;
+    const y = boardPadding + i * gridSpacing;
+
+    ctx.beginPath();
+    ctx.moveTo(x, boardPadding);
+    ctx.lineTo(x, boardPadding + boardSize);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(boardPadding, y);
+    ctx.lineTo(boardPadding + boardSize, y);
+    ctx.stroke();
+  }
+}
+
+function drawStone(row, col, color) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, stoneRadius, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function drawTerritory(row, col, text) {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+
+  const x = boardPadding + col * gridSpacing;
+  const y = boardPadding + row * gridSpacing;
+
+  ctx.fillStyle = 'black';
+  ctx.font = '40px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+function clearBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  board = []; // Reset the board
+  for (let i = 0; i < gridSize; i++) {
+    board[i] = new Array(gridSize).fill(null);
+  }
+}
+
+const initialStones = [
+  { row: 0, col: 2, color: 'white' },
+  { row: 1, col: 2, color: 'white' },
+  { row: 2, col: 2, color: 'white' },
+  { row: 2, col: 3, color: 'white' },
+  { row: 3, col: 3, color: 'white' },
+  { row: 4, col: 3, color: 'white' },
+  { row: 4, col: 2, color: 'black' },
+  { row: 3, col: 2, color: 'black' },
+  { row: 3, col: 1, color: 'black' },
+  { row: 2, col: 1, color: 'black' },
+  { row: 1, col: 1, color: 'black' },
+  { row: 3, col: 0, color: 'black' },
+];
+
+const whiteTerritory = [
+    { row: 0, col: 3 },
+    { row: 0, col: 4 },
+    { row: 1, col: 4 },  
+    { row: 1, col: 3 },
+    { row: 2, col: 4 },
+    { row: 3, col: 4 },
+    { row: 4, col: 4 },
+];
+
+function drawInitialStones() {
+  initialStones.forEach(stone => {
+    board[stone.row][stone.col] = stone.color;
+    drawStone(stone.row, stone.col, stone.color);
+  });
+  whiteTerritory.forEach(spot => {
+    if (board[spot.row][spot.col] === null) {
+      drawTerritory(spot.row, spot.col, 'W');
+    }
+  });
+}
+
+drawGrid();
+drawInitialStones();
+
+let currentColor = 'black';
+
+function getBlackTerritory(row, col) {
+  // Define the possible black territories based on placement
+  const territories = {
+    "0,0": [
+      { row: 1, col: 0 },
+      { row: 2, col: 0 },  
+      { row: 4, col: 0 },
+      { row: 4, col: 1 },
+    ],
+    "0,1": [
+      { row: 0, col: 0 },
+      { row: 1, col: 0 },
+      { row: 2, col: 0 },  
+      { row: 4, col: 0 },
+      { row: 4, col: 1 },
+    ],
+    "1,0": [
+      { row: 2, col: 0 },  
+      { row: 4, col: 0 },
+      { row: 4, col: 1 },
+    ],
+    "2,0": [
+      { row: 4, col: 0 },  
+      { row: 4, col: 1 },
+    ],
+    "4,0": [
+      { row: 4, col: 1 },
+    ],
+    "4,1": [
+      { row: 4, col: 0 },
+    ]
+  };
+
+  const key = `${row},${col}`;
+  return territories[key] || [];
+}
+
+canvas.addEventListener('click', (event) => {
+  const boardSize = canvas.width - 2 * boardPadding;
+  const gridSpacing = boardSize / (gridSize - 1);
+  const x = event.offsetX - boardPadding;
+  const y = event.offsetY - boardPadding;
+
+  const col = Math.round(x / gridSpacing);
+  const row = Math.round(y / gridSpacing);
+
+  if (col >= 0 && col < gridSize && row >= 0 && row < gridSize && board[row][col] === null) {
+    // Place the stone
+    board[row][col] = currentColor;
+
+    // Clear the board and redraw the grid and stones
+    clearBoard();
+    drawInitialStones();
+
+    // Draw the stone
+    drawStone(row, col, currentColor);
+
+    // Get black territory based on the black stone placed
+    const blackTerritory = getBlackTerritory(row, col);
+
+    // Draw new black territory
+    blackTerritory.forEach(spot => {
+      if (board[spot.row][spot.col] === null) {
+        drawTerritory(spot.row, spot.col, 'B');
+      }
+    });
+
+    // Switch turn
+    currentColor = currentColor === 'black' ? 'white' : 'black';
+  }
+});
+</script>
+
+</body>
+</html>
